@@ -69,12 +69,13 @@ function Extract() {
 }
 
 function MoveDir() {
-	echo "Migrating $1"
 	Src="$1"
 	Dst="$2"
+	echo "Converting folder '$Src'"
+	
 	mv $Src "$Dst"		# Src not quoted so can expand wildcard
 	Err=$?
-	[[ $Err -gt 0 ]] && Error "error occurred"
+	[[ $Err -gt 0 ]] && Error "An error occurred"
 }
 
 function Archive() {
@@ -114,8 +115,7 @@ function CreateMySQLfile() {
 		Password="$(cat "$DirPath/$FILE" | grep -Po '(?<=password: )([a-zA-Z0-9*]+)')"
 		Permissions="$(cat "$DirPath/$FILE" | grep -Po '(?<=:)[A-Z ,]+$')"
 		
-		echo "Creating DB '$Database'"
-		echo "Adding DB user '$User'"
+		echo "Creating DB '$Database' & adding DB user '$User'"
 		
 		echo "GRANT USAGE ON *.* TO '$User'@'$Domain' IDENTIFIED BY Password '$Password';" >> $SQL_FilePath
 		echo "GRANT$Permissions ON \`$Database\`.* TO '$User'@'$Domain';" >> $SQL_FilePath
@@ -127,7 +127,7 @@ function CreateEmailAccount() {
 	DestEmailPath="$2"
 	DomainUser="$( cat "$CPanelDir/cp/$AccountName" | grep -Po '(?<=DNS=)([A-Za-z0-9-.]+)')"
 	
-	echo "Creating email accounts for '$DomainUser'"
+	echo "Creating email accounts"
 	
 	for JSON_FILE in $(ls "$BackupEmailPath" | grep -iE "\.conf$"); do
 		Password="$(cat "$BackupEmailPath/$JSON_FILE" | grep -Po '(?<=,"password":")([a-zA-Z0-9\=,]+)')"
@@ -141,18 +141,19 @@ FilePath="$1"
 DestDir="$2"
 UnzipDest="$DestDir/jb5_migrate_$RANDOM"
 
-[[ "$DestDir" == "/" ]] && Error "Error :: Don't use root folder as destination"
+# Sanity check
+[[ "$DestDir" == "/" ]] && ErrorHelp "Error :: Don't use root folder as destination"
 
 BackupPath=$(echo "$FilePath")
 AccountName=$(echo "$FilePath" |  grep -oP '(?<=download_)([^_]+)')
 ! [[ -f "$BackupPath" ]] && Error "Invalid file provided"
 
-echo "Backup path found: '$BackupPath'"
-echo "Account name found: '$AccountName'"
-echo "Creating folder '$UnzipDest'"
+echo "Found backup path '$BackupPath'"
+echo "Found account '$AccountName'"
 
+echo "Creating temporary folder '$UnzipDest'"
 mkdir -p "$UnzipDest"
-! [[ -d "$UnzipDest" ]] && Error "Destination directory error"
+! [[ -d "$UnzipDest" ]] && ErrorHelp "Destination directory error"
 
 echo "Untaring '$BackupPath' into '$UnzipDest'"
 Untar "$BackupPath" "$UnzipDest"
@@ -163,10 +164,10 @@ CPanelDir="$UnzipDest/cpmove-$AccountName"
 JB5Backup="$UnzipDest/backup"
 
 echo "Converting account '$AccountName'"
-echo "Working folder: '$CPanelDir'"
+echo "Working folder '$CPanelDir'"
 
 if ! [[ -d "$JB5Backup/config" ]]; then
-	Error "The backup not contain the config directory"
+	ErrorHelp "The backup does not contain the config directory"
 else
 	MoveDir "$JB5Backup/config" "$CPanelDir/"
 fi
@@ -197,5 +198,5 @@ echo "Creating final cPanel backup archive...";
 Archive "cpmove-$AccountName.tar.gz"
 echo "Converting Done!"
 echo "You can safely remove working folder at: '$JB5Backup'"
-echo "Your cPanel backup location: $UnzipDest/cpmove-$AccountName.tar.gz"
+echo -e "Your cPanel backup:\n$UnzipDest/cpmove-$AccountName.tar.gz"
 
