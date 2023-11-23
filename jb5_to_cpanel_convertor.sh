@@ -100,7 +100,7 @@ function CreateFTPaccount() {
 		Password="$(cat "$DirPath/$FILE" | grep -Po '(?<=password: )([A-Za-z0-9!@#$%^&*,()\/\\.])+')"
 		WebRootPath="$(cat "$DirPath/$FILE" | grep -Po '(?<=path: )([A-Za-z0-9\/_.-]+)')"
 		echo "Creating FTP account '$Username'";
-		printf "$Username:$Password:0:0:$User:$HomeDir/$WebRootPath:/bin/ftpsh" >> $CPanelDir/proftpdpasswd
+		printf "$Username:$Password:0:0:$User:$HomeDir/$WebRootPath:/bin/ftpsh" >> "$CPanelDir/proftpdpasswd"
 	done
 }
 
@@ -118,8 +118,8 @@ function CreateMySQLfile() {
 		
 		echo "Creating DB '$Database' & adding DB user '$User'"
 		
-		echo "GRANT USAGE ON *.* TO '$User'@'$Domain' IDENTIFIED BY Password '$Password';" >> $SQL_FilePath
-		echo "GRANT$Permissions ON \`$Database\`.* TO '$User'@'$Domain';" >> $SQL_FilePath
+		echo "GRANT USAGE ON *.* TO '$User'@'$Domain' IDENTIFIED BY PASSWORD '$Password';" >> "$SQL_FilePath"
+		echo "GRANT$Permissions ON \`$Database\`.* TO '$User'@'$Domain';" >> "$SQL_FilePath"
 	done
 }
 
