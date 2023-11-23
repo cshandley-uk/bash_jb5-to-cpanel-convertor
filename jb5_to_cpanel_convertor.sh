@@ -31,15 +31,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-function message {
+function Error {
 	echo "";
 	echo "$1";
 	echo "";
-	[[ -z $2 ]] && print_help
+	[[ -z $2 ]] && ErrorHelp
 	exit
 }
 
-function print_help {
+function ErrorHelp {
 	echo "
 Example for manual usage:
 jb5_to_cpanel_convertor.sh {JETBACKUP5_BACKUP} {DESTINATION_ARCHIVE}
@@ -52,31 +52,31 @@ jb5_to_cpanel_convertor.sh /usr/local/jetapps/usr/jetbackup5/downloads/download_
 	exit 0
 }
 
-function untar() {
+function Untar() {
 	BACKUP_PATH=$1
 	DESTINATION_PATH=$2
 	tar -xf $BACKUP_PATH -C $DESTINATION_PATH
 	CODE=$?
-	[[ $CODE -gt 0  ]] && message "Unable to untar the file $BACKUP_PATH" 1
+	[[ $CODE -gt 0  ]] && Error "Unable to untar the file $BACKUP_PATH" 1
 }
 
-function extract() {
+function Extract() {
 	FILE_PATH=$1
 	gunzip $FILE_PATH
 	CODE=$?
-	[[ $CODE -gt 0 ]] && message "Unable to extract files" 1
+	[[ $CODE -gt 0 ]] && Error "Unable to extract files" 1
 }
 
-function move_dir() {
+function MoveDir() {
 		echo "Migrating $1"
 		SOURCE=$1
 		DESTINATION=$2
 		mv $SOURCE $DESTINATION
 		CODE=$?
-		[[ $CODE -gt 0 ]] && message "error occurred" 1
+		[[ $CODE -gt 0 ]] && Error "error occurred" 1
 }
 
-function archive() {
+function Archive() {
 		TAR_NAME=$1
 		
 		echo "Creating archive $UNZIP_DESTINATION/$TAR_NAME"
@@ -84,10 +84,10 @@ function archive() {
 		cd $UNZIP_DESTINATION
 		tar -czf "$TAR_NAME" cpmove-"$ACCOUNT_NAME" >/dev/null 2>&1
 		CODE=$?
-		[[ $CODE != 0 ]] && message "Unable to create tar file" 1
+		[[ $CODE != 0 ]] && Error "Unable to create tar file" 1
 }
 
-function create_ftp_account() {
+function CreateFTPaccount() {
 	DIRECTORY_PATH=$1
 	CONFIG_PATH=$2
 	HOMEDIR=$( cat $CONFIG_PATH/meta/homedir_paths )
@@ -102,7 +102,7 @@ function create_ftp_account() {
 	done
 }
 
-function create_mysql_file() {
+function CreateMySQLfile() {
 	DIRECTORY_PATH=$1
 	SQL_FILE_PATH=$2
 	
@@ -122,7 +122,7 @@ function create_mysql_file() {
 	done
 }
 
-function create_email_account() {
+function CreateEmailAccount() {
 	BACKUP_EMAIL_PATH=$1
 	DESTINATION_EMAIL_PATH=$2
 	DOMAIN_USER=$( cat $CPANEL_DIRECTORY/cp/$ACCOUNT_NAME | grep -Po '(?<=DNS=)([A-Za-z0-9-.]+)')
@@ -141,23 +141,23 @@ DES_PATH=$2
 UNZIP_DESTINATION=$DES_PATH/jb5_migrate_$RANDOM
 FETCH_DOWNLOAD=$3
 
-[[ $DES_PATH == "/" ]] && message "Error :: Don't use root folder as destination"
+[[ $DES_PATH == "/" ]] && Error "Error :: Don't use root folder as destination"
 
 BACKUP_PATH=$(echo $FILE_PATH)
 ACCOUNT_NAME=$(echo $FILE_PATH |  grep -oP '(?<=download_)([^_]+)')
-! [[ -f $BACKUP_PATH ]] && message "Invalid file provided"
+! [[ -f $BACKUP_PATH ]] && Error "Invalid file provided"
 
 echo "Backup path found: $BACKUP_PATH"
 echo "Account name found: $ACCOUNT_NAME"
 echo "Creating folder $UNZIP_DESTINATION"
 
 mkdir -p $UNZIP_DESTINATION
-! [[ -d $UNZIP_DESTINATION ]] && message "Destination directory error"
+! [[ -d $UNZIP_DESTINATION ]] && Error "Destination directory error"
 
 echo "Untaring $BACKUP_PATH into $UNZIP_DESTINATION"
-untar $BACKUP_PATH $UNZIP_DESTINATION
+Untar $BACKUP_PATH $UNZIP_DESTINATION
 
-! [[ -d $UNZIP_DESTINATION/backup ]] && message "JetBackup5 backup directory $UNZIP_DESTINATION/backup not found" 1
+! [[ -d $UNZIP_DESTINATION/backup ]] && Error "JetBackup5 backup directory $UNZIP_DESTINATION/backup not found" 1
 
 CPANEL_DIRECTORY=$UNZIP_DESTINATION/cpmove-$ACCOUNT_NAME
 JB5_BACKUP=$UNZIP_DESTINATION/backup
@@ -166,35 +166,35 @@ echo "Converting account '$ACCOUNT_NAME'"
 echo "Working folder: $CPANEL_DIRECTORY"
 
 if ! [[ -d $JB5_BACKUP/config ]]; then
-	message "The backup not contain the config directory"
+	Error "The backup not contain the config directory"
 else
-	move_dir "$JB5_BACKUP/config" "$CPANEL_DIRECTORY/"
+	MoveDir "$JB5_BACKUP/config" "$CPANEL_DIRECTORY/"
 fi
 
 if [[ -d $JB5_BACKUP/homedir ]]; then
 	 if ! [[ -d $CPANEL_DIRECTORY/homedir ]]; then
-		move_dir "$JB5_BACKUP/homedir" "$CPANEL_DIRECTORY"
+		MoveDir "$JB5_BACKUP/homedir" "$CPANEL_DIRECTORY"
 	 else
 		rsync -ar "$JB5_BACKUP/homedir" "$CPANEL_DIRECTORY"
 	 fi
 fi
 
 if [[ -d $JB5_BACKUP/database ]] ; then
-	move_dir "$JB5_BACKUP/database/*" "$CPANEL_DIRECTORY/mysql"
-	extract "$CPANEL_DIRECTORY/mysql/*"
+	MoveDir "$JB5_BACKUP/database/*" "$CPANEL_DIRECTORY/mysql"
+	Extract "$CPANEL_DIRECTORY/mysql/*"
 fi
 
-[[ -d $JB5_BACKUP/database_user ]] && create_mysql_file "$JB5_BACKUP/database_user" "$CPANEL_DIRECTORY/mysql.sql"
+[[ -d $JB5_BACKUP/database_user ]] && CreateMySQLfile "$JB5_BACKUP/database_user" "$CPANEL_DIRECTORY/mysql.sql"
 
 if [[ -d $JB5_BACKUP/email ]]; then
-	move_dir "$JB5_BACKUP/email" "$CPANEL_DIRECTORY/homedir/mail"
-	[[ -d $JB5_BACKUP/jetbackup.configs/email ]] && create_email_account "$JB5_BACKUP/jetbackup.configs/email" "$CPANEL_DIRECTORY/homedir/etc" "$ACCOUNT_NAME"
+	MoveDir "$JB5_BACKUP/email" "$CPANEL_DIRECTORY/homedir/mail"
+	[[ -d $JB5_BACKUP/jetbackup.configs/email ]] && CreateEmailAccount "$JB5_BACKUP/jetbackup.configs/email" "$CPANEL_DIRECTORY/homedir/etc" "$ACCOUNT_NAME"
 fi
 
-[[ -d $JB5_BACKUP/ftp ]] && create_ftp_account "$JB5_BACKUP/ftp" "$CPANEL_DIRECTORY"
+[[ -d $JB5_BACKUP/ftp ]] && CreateFTPaccount "$JB5_BACKUP/ftp" "$CPANEL_DIRECTORY"
 
 echo "Creating final cPanel backup archive...";
-archive "cpmove-$ACCOUNT_NAME.tar.gz"
+Archive "cpmove-$ACCOUNT_NAME.tar.gz"
 echo "Converting Done!"
 echo "You can safely remove working folder at: $JB5_BACKUP"
 echo "Your cPanel backup location: $UNZIP_DESTINATION/cpmove-$ACCOUNT_NAME.tar.gz"
