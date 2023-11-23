@@ -32,14 +32,14 @@
 # SOFTWARE.
 
 function Error {
-	echo "";
-	echo "$1";
-	echo "";
-	[[ -z $2 ]] && ErrorHelp
-	exit
+	echo ""
+	echo "$1"
+	exit 1
 }
 
 function ErrorHelp {
+	echo ""
+	echo "$1"
 	echo "
 Example for manual usage:
 jb5_to_cpanel_convertor.sh {JETBACKUP5_BACKUP} {DESTINATION_ARCHIVE}
@@ -47,9 +47,10 @@ jb5_to_cpanel_convertor.sh {JETBACKUP5_BACKUP} {DESTINATION_ARCHIVE}
 {JETBACKUP5_BACKUP}   = Source JetBackup file
 {DESTINATION_ARCHIVE} = Destination folder for cPanel backup, defaults to /home/
 
-jb5_to_cpanel_convertor.sh /usr/local/jetapps/usr/jetbackup5/downloads/download_jb5user_1663238955_28117.tar.gz /root/cpanel_structure
+e.g. 
+jb5_to_cpanel_convertor.sh /home/download_jb5user_1663238955_28117.tar.gz
 "
-	exit 0
+	exit 1
 }
 
 function Untar() {
