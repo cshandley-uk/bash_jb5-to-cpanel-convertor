@@ -1,4 +1,5 @@
 #!/bin/bash
+# Convert the supplied JetBackup 5 backup file to a cPanel-compatible backup.
 # 
 # Created by TheLazyAdmin, https://thelazyadmin.blog
 #
