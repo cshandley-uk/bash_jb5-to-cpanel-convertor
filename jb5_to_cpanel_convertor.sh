@@ -31,6 +31,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+function message {
+	echo "";
+	echo "$1";
+	echo "";
+	[[ -z $2 ]] && print_help
+	exit
+}
+
 function print_help {
 	echo "
 Example for manual usage:
@@ -42,14 +50,6 @@ jb5_to_cpanel_convertor.sh {JETBACKUP5_BACKUP} {DESTINATION_ARCHIVE}
 jb5_to_cpanel_convertor.sh /usr/local/jetapps/usr/jetbackup5/downloads/download_jb5user_1663238955_28117.tar.gz /root/cpanel_structure
 "
 	exit 0
-}
-
-function message {
-	echo "";
-	echo "$1";
-	echo "";
-	[[ -z $2 ]] && print_help
-	exit
 }
 
 function untar() {
