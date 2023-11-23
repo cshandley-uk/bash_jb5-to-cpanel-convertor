@@ -80,10 +80,11 @@ function MoveDir() {
 
 function Archive() {
 	TarName="$1"
-	echo "Creating archive '$UnzipDest/$TarName'"
+	echo "Creating archive '$DestDir/$TarName'"
 	
+	if [ -f "$DestDir/$TarName" ]; then rm "$DestDir/$TarName"; fi	# Ensure create a new archive from scratch
 	cd "$UnzipDest"
-	tar -czf "$TarName" "cpmove-$AccountName" >/dev/null 2>&1
+	tar -czf "$DestDir/$TarName" "cpmove-$AccountName" >/dev/null 2>&1
 	Err=$?
 	[[ $Err != 0 ]] && Error "Unable to create tar file"
 }
@@ -139,14 +140,19 @@ function CreateEmailAccount() {
 # Parse arguments
 FilePath="$1"
 DestDir="$2"
-UnzipDest="$DestDir/jb5_migrate_$RANDOM"
 
 # Sanity check
+! [[ -f "$FilePath" ]] && ErrorHelp "Invalid file provided"
 [[ "$DestDir" == "/" ]] && ErrorHelp "Error :: Don't use root folder as destination"
 
-BackupPath=$(echo "$FilePath")
+# Default arguments
+if [ -z "$DestDir" ]; then DestDir=/home; fi
+
+# Extract username
 AccountName=$(echo "$FilePath" |  grep -oP '(?<=download_)([^_]+)')
-! [[ -f "$BackupPath" ]] && Error "Invalid file provided"
+
+UnzipDest="$(mktemp --directory --tmpdir=/tmp "tmp_jb5_$AccountName.XXXXXXXX")"
+BackupPath="$FilePath"
 
 echo "Found backup path '$BackupPath'"
 echo "Found account '$AccountName'"
@@ -154,10 +160,15 @@ echo "Found account '$AccountName'"
 echo "Creating temporary folder '$UnzipDest'"
 mkdir -p "$UnzipDest"
 ! [[ -d "$UnzipDest" ]] && ErrorHelp "Destination directory error"
+# Ensure we always clean-up the temporary dir
+Trap=":"
+Trap="$Trap; rm -r '$UnzipDest'"
+trap "trap '' EXIT SIGINT; $Trap" EXIT
+trap "trap '' EXIT SIGINT; $Trap; exit 130" SIGINT
+#echo "WARNING: Temp folder will NOT be deleted"
 
 echo "Untaring '$BackupPath' into '$UnzipDest'"
 Untar "$BackupPath" "$UnzipDest"
-
 ! [[ -d "$UnzipDest/backup" ]] && Error "JetBackup5 backup directory '$UnzipDest/backup' not found"
 
 CPanelDir="$UnzipDest/cpmove-$AccountName"
@@ -197,6 +208,6 @@ fi
 echo "Creating final cPanel backup archive...";
 Archive "cpmove-$AccountName.tar.gz"
 echo "Converting Done!"
-echo "You can safely remove working folder at: '$JB5Backup'"
+#echo "You can safely remove working folder at: '$JB5Backup'"
 echo -e "Your cPanel backup:\n$UnzipDest/cpmove-$AccountName.tar.gz"
 
