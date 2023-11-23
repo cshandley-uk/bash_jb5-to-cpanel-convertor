@@ -39,16 +39,6 @@ jb5_to_cpanel_convertor.sh {JETBACKUP5_BACKUP} {DESTINATION_ARCHIVE}
 {DESTINATION_ARCHIVE} = Destination folder for cPanel backup, defaults to /home/
 
 jb5_to_cpanel_convertor.sh /usr/local/jetapps/usr/jetbackup5/downloads/download_jb5user_1663238955_28117.tar.gz /root/cpanel_structure
-
-Example for auto usage :
-
-jb5_to_cpanel_convertor.sh {ACCOUNT} {DESTINATION_ARCHIVE} --fetch
-
-{ACCOUNT} cPanel Account name
-{DESTINATION_ARCHIVE} Where to put the cPanel generated backup
---fetch Auto download the *LAST* backup for the specified account
-
-jb5_to_cpanel_convertor.sh username /root/cpanel_structure --fetch
 "
 	exit 0
 }
@@ -74,13 +64,6 @@ function extract() {
 	gunzip $FILE_PATH
 	CODE=$?
 	[[ $CODE -gt 0 ]] && message "Unable to extract files" 1
-}
-
-function create_dir() {
-		DIRECTORY_PATH=$1
-		mkdir $DIRECTORY_PATH >/dev/null 2>&1
-		CODE=$?
-		[[ $CODE -gt 0 ]] && message "Error: The directory $DIRECTORY_PATH already exist delete the directory to continue" 1
 }
 
 function move_dir() {
@@ -158,77 +141,10 @@ UNZIP_DESTINATION=$DES_PATH/jb5_migrate_$RANDOM
 FETCH_DOWNLOAD=$3
 
 [[ $DES_PATH == "/" ]] && message "Error :: Don't use root folder as destination"
-[[ $DES_PATH == "--fetch" ]] && message "Error :: Destination path not provided"
 
-if [[ $FETCH_DOWNLOAD == "--fetch" ]]; then
-	ACCOUNT_NAME=$1
-	id $ACCOUNT_NAME > /dev/null 2>&1
-	CODE=$?
-	[[ $CODE != 0 ]] && message "Provided user $ACCOUNT_NAME not found" 1
-	
-	JETBACKUP_ACCOUNT_NAME=$ACCOUNT_NAME
-	
-	echo "Fetching JetBackup download for: $JETBACKUP_ACCOUNT_NAME"
-	
-	JETBACKUP_ACCOUNT_ID=$( /usr/bin/jetbackup5api -F listBackupForAccounts -D "type=1&contains=511" | grep -w "$JETBACKUP_ACCOUNT_NAME" -B1 | grep 'account_id' | awk {'print $2'} )
-	[[ -z "$JETBACKUP_ACCOUNT_ID" ]] && message "No full backups found for this account" 1
-	
-	echo "Retrieved Account ID: $JETBACKUP_ACCOUNT_ID"
-	JETBACKUP_BACKUP_ID=$( /usr/bin/jetbackup5api -F listBackupForTypeName -D "type=1&contains=511&account_id=$JETBACKUP_ACCOUNT_ID&name=$JETBACKUP_ACCOUNT_NAME" | grep 'parent_id' -B1 | grep -w -m1 '_id:' | awk {'print $2'} )
-	[[ -z "$JETBACKUP_BACKUP_ID" ]] && message "Something went wrong, couldn't retrieve an account ID" 1
-	
-	echo "Retrieved Backup ID: $JETBACKUP_BACKUP_ID"
-	JETBACKUP_SNAP_ID=$( /usr/bin/jetbackup5api -F getBackupItem -D "_id=$JETBACKUP_BACKUP_ID" | grep 'parent_id' | awk {'print $2'} )
-	[[ -z "$JETBACKUP_SNAP_ID" ]] && message "Something went wrong, couldn't retrieve an snap ID" 1
-	
-	echo "Retrieved Snap ID: $JETBACKUP_SNAP_ID"
-	JETBACKUP_QUEUE_ID=$( /usr/bin/jetbackup5api -F addQueueItems -D "type=4&snapshot_id=$JETBACKUP_SNAP_ID" | grep '_id:' | awk {'print $2'} )
-	[[ -z "$JETBACKUP_SNAP_ID" ]] && message "Something went wrong, couldn't add to queue" 1
-	
-	echo "Backup queued for download, queue ID: $JETBACKUP_SNAP_ID"
-	echo "Waiting for download to finish (you can also monitor from JetBackup GUI -> Queue)"
-	echo "It's time to get a coffee :)"
-	
-	RETRY=1
-	JET_BREAK=0
-	
-	while [ $RETRY -ne 0 ]; do
-		sleep 1
-		JETBACKUP_QUEUE_STATUS=$( /usr/bin/jetbackup5api -F getQueueGroup -D "_id=$JETBACKUP_QUEUE_ID" | grep 'status:' | awk {'print $2'} )
-		
-		case $JETBACKUP_QUEUE_STATUS in
-		30)
-			JETBACKUP_QUEUE_EXEC=$( /usr/bin/jetbackup5api -F getQueueGroup -D "_id=$JETBACKUP_QUEUE_ID" | grep 'execution_time:' | awk {'print $2'} )
-			echo "Executed time: $JETBACKUP_QUEUE_EXEC"
-			RETRY=1
-		;;
-		100)
-			echo "Download finished successfully!"
-			RETRY=0
-			JET_BREAK=0
-		;;
-		102)
-			echo "ERROR: Download Failed!"
-			RETRY=0
-			JET_BREAK=1
-		;;
-		*)
-			RETRY=1
-			#JET_BREAK=1
-		;;
-		esac
-	done
-	
-	JETBACKUP_LOG_FILE=$( /usr/bin/jetbackup5api -F getQueueGroup -D "_id=$JETBACKUP_QUEUE_ID" | grep 'log_file:' | awk {'print $2'} )
-	
-	[[ $JET_BREAK -ne 0 ]]  && message "Error occurred while trying to fetch download, log file: $JETBACKUP_LOG_FILE" 1
-	BACKUP_PATH=$( cat "$JETBACKUP_LOG_FILE" | grep 'Download location' | awk {'print $NF'} )
-	BACKUP_PATH="${BACKUP_PATH%%[[:cntrl:]]}"
-else
-	BACKUP_PATH=$(echo $FILE_PATH)
-	ACCOUNT_NAME=$(echo $FILE_PATH |  grep -oP '(?<=download_)([^_]+)')
-	! [[ -f $BACKUP_PATH ]] && message "Invalid file provided"
-fi
+BACKUP_PATH=$(echo $FILE_PATH)
+ACCOUNT_NAME=$(echo $FILE_PATH |  grep -oP '(?<=download_)([^_]+)')
+! [[ -f $BACKUP_PATH ]] && message "Invalid file provided"
 
 echo "Backup path found: $BACKUP_PATH"
 echo "Account name found: $ACCOUNT_NAME"
