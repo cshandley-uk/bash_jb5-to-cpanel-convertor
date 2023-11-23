@@ -68,23 +68,23 @@ function Extract() {
 }
 
 function MoveDir() {
-		echo "Migrating $1"
-		Src=$1
-		Dst=$2
-		mv $Src $Dst
-		Err=$?
-		[[ $Err -gt 0 ]] && Error "error occurred" 1
+	echo "Migrating $1"
+	Src=$1
+	Dst=$2
+	mv $Src $Dst
+	Err=$?
+	[[ $Err -gt 0 ]] && Error "error occurred" 1
 }
 
 function Archive() {
-		TarName=$1
-		
-		echo "Creating archive $DestDir/$TarName"
-		
-		cd $DestDir
-		tar -czf "$TarName" cpmove-"$AccountName" >/dev/null 2>&1
-		Err=$?
-		[[ $Err != 0 ]] && Error "Unable to create tar file" 1
+	TarName=$1
+	
+	echo "Creating archive $DestDir/$TarName"
+	
+	cd $DestDir
+	tar -czf "$TarName" cpmove-"$AccountName" >/dev/null 2>&1
+	Err=$?
+	[[ $Err != 0 ]] && Error "Unable to create tar file" 1
 }
 
 function CreateFTPaccount() {
