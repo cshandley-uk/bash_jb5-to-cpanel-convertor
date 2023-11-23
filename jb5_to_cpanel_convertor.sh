@@ -202,7 +202,7 @@ fi
 
 if [[ -d "$JB5Backup/email" ]]; then
 	MoveDir "$JB5Backup/email" "$CPanelDir/homedir/mail"
-	[[ -d "$JB5Backup/jetbackup.configs/email" ]] && CreateEmailAccount "$JB5Backup/jetbackup.configs/email" "$CPanelDir/homedir/etc" "$AccountName"
+	[[ -d "$JB5Backup/jetbackup.configs/email" ]] && CreateEmailAccount "$JB5Backup/jetbackup.configs/email" "$CPanelDir/homedir/etc"
 fi
 
 [[ -d "$JB5Backup/ftp" ]] && CreateFTPaccount "$JB5Backup/ftp" "$CPanelDir"
