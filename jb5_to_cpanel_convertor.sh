@@ -126,14 +126,15 @@ function CreateMySQLfile() {
 function CreateEmailAccount() {
 	BackupEmailPath="$1"
 	DestEmailPath="$2"
-	DomainUser="$( cat "$CPanelDir/cp/$AccountName" | grep -Po '(?<=DNS=)([A-Za-z0-9-.]+)')"
 	
 	echo "Creating email accounts"
 	
 	for JSON_FILE in $(ls "$BackupEmailPath" | grep -iE "\.conf$"); do
-		Password="$(cat "$BackupEmailPath/$JSON_FILE" | grep -Po '(?<=,"password":")([a-zA-Z0-9\=,]+)')"
-		DecodedPassword="$(echo "$Password" | base64 --decode )"
-		printf "$DomainUser:$DecodedPassword" >> "$DestEmailPath/$DomainUser/shadow"
+		JsonFile="$BackupEmailPath/$JSON_FILE"
+		MailUser="$(jq -r '.account' "$JsonFile" | base64 --decode)"
+		MailDomain="$(jq -r '.domain' "$JsonFile" | base64 --decode)"
+		MailPassword="$(jq -r '.password' "$JsonFile" | base64 --decode)"
+		echo "${MailUser}:${MailPassword}:::::::" >>"$DestEmailPath/${MailDomain}/shadow"
 	done
 }
 
