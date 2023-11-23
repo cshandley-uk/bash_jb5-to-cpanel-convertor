@@ -215,6 +215,52 @@ function CreateDomains() {
 	done
 }
 
+function CreateSSLcerts() {
+	DirPath="$1"
+	ConfigPath="$2"
+	
+	echo "Creating SSL certifcates"
+	
+	# indicates the account will use WHM’s SSL Storage Manager feature (WHM » Home » SSL/TLS » SSL Storage Manager)
+	# And without this, restoring the account will fail to install the SSL certificate, reporting "An error prevented adding a record of type “crt” ... That certificate is already installed as ..."
+	touch $ConfigPath/has_sslstorage
+	
+	# with the above, the code below seems unnecessary, so I have disabled it
+	return
+	
+	# loop through primary, addon & parked Domains
+	for JSON_FILE in $(ls -1 "$DirPath"/*.conf); do
+		#WebRoot="$(jq -r '.public_dir' "$JSON_FILE" | base64 --decode)"
+		Domain="$(jq -r '.domain' "$JSON_FILE" | base64 --decode)"
+		Type="$(jq -r '.type' "$JSON_FILE" | base64 --decode)"
+		if [[ "$Type" -eq 1 || "$Type" -eq 2 || "$Type" -eq 4 ]]; then
+			echo "	Creating SSL cert for '$Domain'"
+			#echo "# Domain='$Domain', Type=$Type (1/2/3/4=Primary/Addon/Sub/Parked)" >/dev/stderr
+			echo -n "" >$ConfigPath/apache_tls/$Domain
+
+			# for the Domain, get the Modulus of it's most recent certificate
+			Modulus="$(yq -r ".files.certificate | to_entries | map(select(.value.\"subject.commonName\" == \"$Domain\")) | sort_by(.value.created) | reverse[0].value.modulus" "$ConfigPath"/homedir/ssl/ssl.db)"
+			#echo "# domain has Modulus='$Modulus'" >/dev/stderr
+			# get the name of the Key with the matching Modulus
+			Key="$(yq -r ".files.key | to_entries | map(select(.value.modulus == \"$Modulus\"))[] | .key" "$ConfigPath"/homedir/ssl/ssl.db)"
+			#echo "# modulus has Key='$Key'" >/dev/stderr
+			# read the corresponding Key & append it to apache_tls/Domain
+			cat "$ConfigPath"/homedir/ssl/keys/"$Key".key >>$ConfigPath/apache_tls/$Domain
+			echo ""                                       >>$ConfigPath/apache_tls/$Domain
+			
+			# for the Domain, get the name of it's most recent Cert(ificate)
+			Cert="$(yq -r ".files.certificate | to_entries | map(select(.value.\"subject.commonName\" == \"$Domain\")) | sort_by(.value.created) | reverse[0].key" "$ConfigPath"/homedir/ssl/ssl.db)"
+			#echo "# domain has Cert='$Cert'" >/dev/stderr
+			# read the Cert(ificate) & append it to apache_tls/Domain
+			cat "$ConfigPath"/homedir/ssl/certs/"$Cert".crt >>$ConfigPath/apache_tls/$Domain
+			echo ""                                         >>$ConfigPath/apache_tls/$Domain
+			
+			# I don't append the CA (Certificate Authority) bundle’s root node, as I can't find it in the JB5 backup.
+			# BUT it might be unnecessary as "In most cases, you do not need to supply the CA bundle because the server will fetch it from a public repository"
+		fi
+	done
+}
+
 # Parse arguments
 FilePath="$1"
 DestDir="$2"
@@ -286,6 +332,7 @@ fi
 
 if [[ -d "$JB5Backup/jetbackup.configs/domain" ]]; then
 	CreateDomains "$JB5Backup/jetbackup.configs/domain" "$CPanelDir"
+	CreateSSLcerts "$JB5Backup/jetbackup.configs/domain" "$CPanelDir"
 fi
 
 echo "Creating final cPanel backup archive...";
