@@ -53,149 +53,148 @@ jb5_to_cpanel_convertor.sh /usr/local/jetapps/usr/jetbackup5/downloads/download_
 }
 
 function Untar() {
-	BACKUP_PATH=$1
-	DESTINATION_PATH=$2
-	tar -xf $BACKUP_PATH -C $DESTINATION_PATH
-	CODE=$?
-	[[ $CODE -gt 0  ]] && Error "Unable to untar the file $BACKUP_PATH" 1
+	BackupPath=$1
+	DestPath=$2
+	tar -xf $BackupPath -C $DestPath
+	Err=$?
+	[[ $Err -gt 0  ]] && Error "Unable to untar the file $BackupPath" 1
 }
 
 function Extract() {
-	FILE_PATH=$1
-	gunzip $FILE_PATH
-	CODE=$?
-	[[ $CODE -gt 0 ]] && Error "Unable to extract files" 1
+	FilePath=$1
+	gunzip $FilePath
+	Err=$?
+	[[ $Err -gt 0 ]] && Error "Unable to extract files" 1
 }
 
 function MoveDir() {
 		echo "Migrating $1"
-		SOURCE=$1
-		DESTINATION=$2
-		mv $SOURCE $DESTINATION
-		CODE=$?
-		[[ $CODE -gt 0 ]] && Error "error occurred" 1
+		Src=$1
+		Dst=$2
+		mv $Src $Dst
+		Err=$?
+		[[ $Err -gt 0 ]] && Error "error occurred" 1
 }
 
 function Archive() {
-		TAR_NAME=$1
+		TarName=$1
 		
-		echo "Creating archive $UNZIP_DESTINATION/$TAR_NAME"
+		echo "Creating archive $DestDir/$TarName"
 		
-		cd $UNZIP_DESTINATION
-		tar -czf "$TAR_NAME" cpmove-"$ACCOUNT_NAME" >/dev/null 2>&1
-		CODE=$?
-		[[ $CODE != 0 ]] && Error "Unable to create tar file" 1
+		cd $DestDir
+		tar -czf "$TarName" cpmove-"$AccountName" >/dev/null 2>&1
+		Err=$?
+		[[ $Err != 0 ]] && Error "Unable to create tar file" 1
 }
 
 function CreateFTPaccount() {
-	DIRECTORY_PATH=$1
-	CONFIG_PATH=$2
-	HOMEDIR=$( cat $CONFIG_PATH/meta/homedir_paths )
-	USER=$( ls $CONFIG_PATH/cp/)
+	DirPath=$1
+	ConfigPath=$2
+	HomeDir=$( cat $ConfigPath/meta/homedir_paths )
+	User=$( ls $ConfigPath/cp/)
 	
-	for FILE in $(ls $DIRECTORY_PATH | grep -iE "\.acct$"); do
-		USERNAME=$(cat $DIRECTORY_PATH/$FILE | grep -Po '(?<=name: )(\w\D+)')
-		PASSWORD=$(cat $DIRECTORY_PATH/$FILE | grep -Po '(?<=password: )([A-Za-z0-9!@#$%^&*,()\/\\.])+')
-		PUBLIC_HTML_PATH=$(cat $DIRECTORY_PATH/$FILE | grep -Po '(?<=path: )([A-Za-z0-9\/_.-]+)')
-		echo "Creating FTP account $USERNAME";
-		printf "$USERNAME:$PASSWORD:0:0:$USER:$HOMEDIR/$PUBLIC_HTML_PATH:/bin/ftpsh" >> $CPANEL_DIRECTORY/proftpdpasswd
+	for FILE in $(ls $DirPath | grep -iE "\.acct$"); do
+		Username=$(cat $DirPath/$FILE | grep -Po '(?<=name: )(\w\D+)')
+		Password=$(cat $DirPath/$FILE | grep -Po '(?<=password: )([A-Za-z0-9!@#$%^&*,()\/\\.])+')
+		WebRootPath=$(cat $DirPath/$FILE | grep -Po '(?<=path: )([A-Za-z0-9\/_.-]+)')
+		echo "Creating FTP account $Username";
+		printf "$Username:$Password:0:0:$User:$HomeDir/$WebRootPath:/bin/ftpsh" >> $CPanelDir/proftpdpasswd
 	done
 }
 
 function CreateMySQLfile() {
-	DIRECTORY_PATH=$1
-	SQL_FILE_PATH=$2
+	DirPath=$1
+	SQL_FilePath=$2
 	
-	for FILE in $(ls $DIRECTORY_PATH | grep -iE "\.user$"); do
-		USERNAME=$(cat $DIRECTORY_PATH/$FILE | grep -Po '(?<=name: )([a-zA-Z0-9!@#$%^&*(\)\_\.-]+)')
-		DATABASE=$(cat $DIRECTORY_PATH/$FILE | grep -Po '(?<=database `)([_a-zA-Z0-9]+)')
-		USER=$(cat $DIRECTORY_PATH/$FILE | grep -Po '(?<=name: )([a-zA-Z0-9!#$%^&*(\)\_\.]+)')
-		DOMAIN=$(echo $USERNAME | grep -Po '(?<=@)(.*)$')
-		PASSWORD=$(cat $DIRECTORY_PATH/$FILE | grep -Po '(?<=password: )([a-zA-Z0-9*]+)')
-		PERMISSIONS=$(cat $DIRECTORY_PATH/$FILE | grep -Po '(?<=:)[A-Z ,]+$')
+	for FILE in $(ls $DirPath | grep -iE "\.user$"); do
+		Username=$(cat $DirPath/$FILE | grep -Po '(?<=name: )([a-zA-Z0-9!@#$%^&*(\)\_\.-]+)')
+		Database=$(cat $DirPath/$FILE | grep -Po '(?<=database `)([_a-zA-Z0-9]+)')
+		User=$(cat $DirPath/$FILE | grep -Po '(?<=name: )([a-zA-Z0-9!#$%^&*(\)\_\.]+)')
+		Domain=$(echo $Username | grep -Po '(?<=@)(.*)$')
+		Password=$(cat $DirPath/$FILE | grep -Po '(?<=password: )([a-zA-Z0-9*]+)')
+		Permissions=$(cat $DirPath/$FILE | grep -Po '(?<=:)[A-Z ,]+$')
 		
-		echo "Creating DB $DATABASE"
-		echo "Adding DB user $USER"
+		echo "Creating DB $Database"
+		echo "Adding DB user $User"
 		
-		echo "GRANT USAGE ON *.* TO '$USER'@'$DOMAIN' IDENTIFIED BY PASSWORD '$PASSWORD';" >> $SQL_FILE_PATH
-		echo "GRANT$PERMISSIONS ON \`$DATABASE\`.* TO '$USER'@'$DOMAIN';" >> $SQL_FILE_PATH
+		echo "GRANT USAGE ON *.* TO '$User'@'$Domain' IDENTIFIED BY Password '$Password';" >> $SQL_FilePath
+		echo "GRANT$Permissions ON \`$Database\`.* TO '$User'@'$Domain';" >> $SQL_FilePath
 	done
 }
 
 function CreateEmailAccount() {
-	BACKUP_EMAIL_PATH=$1
-	DESTINATION_EMAIL_PATH=$2
-	DOMAIN_USER=$( cat $CPANEL_DIRECTORY/cp/$ACCOUNT_NAME | grep -Po '(?<=DNS=)([A-Za-z0-9-.]+)')
+	BackupEmailPath=$1
+	DestEmailPath=$2
+	DomainUser=$( cat $CPanelDir/cp/$AccountName | grep -Po '(?<=DNS=)([A-Za-z0-9-.]+)')
 	
-	echo "Creating email accounts for $DOMAIN_USER"
+	echo "Creating email accounts for $DomainUser"
 	
-	for JSON_FILE in $(ls $BACKUP_EMAIL_PATH | grep -iE "\.conf$"); do
-		PASSWORD=$(cat $BACKUP_EMAIL_PATH/$JSON_FILE | grep -Po '(?<=,"password":")([a-zA-Z0-9\=,]+)')
-		DECODED_PASSWORD=$(echo $PASSWORD | base64 --decode )
-		printf $DOMAIN_USER:$DECODED_PASSWORD >> $DESTINATION_EMAIL_PATH/$DOMAIN_USER/shadow
+	for JSON_FILE in $(ls $BackupEmailPath | grep -iE "\.conf$"); do
+		Password=$(cat $BackupEmailPath/$JSON_FILE | grep -Po '(?<=,"password":")([a-zA-Z0-9\=,]+)')
+		DecodedPassword=$(echo $Password | base64 --decode )
+		printf $DomainUser:$DecodedPassword >> $DestEmailPath/$DomainUser/shadow
 	done
 }
 
-FILE_PATH=$1
-DES_PATH=$2
-UNZIP_DESTINATION=$DES_PATH/jb5_migrate_$RANDOM
-FETCH_DOWNLOAD=$3
+FilePath=$1
+DestDir=$2
+DestDir=$DestDir/jb5_migrate_$RANDOM
 
-[[ $DES_PATH == "/" ]] && Error "Error :: Don't use root folder as destination"
+[[ $DestDir == "/" ]] && Error "Error :: Don't use root folder as destination"
 
-BACKUP_PATH=$(echo $FILE_PATH)
-ACCOUNT_NAME=$(echo $FILE_PATH |  grep -oP '(?<=download_)([^_]+)')
-! [[ -f $BACKUP_PATH ]] && Error "Invalid file provided"
+BackupPath=$(echo $FilePath)
+AccountName=$(echo $FilePath |  grep -oP '(?<=download_)([^_]+)')
+! [[ -f $BackupPath ]] && Error "Invalid file provided"
 
-echo "Backup path found: $BACKUP_PATH"
-echo "Account name found: $ACCOUNT_NAME"
-echo "Creating folder $UNZIP_DESTINATION"
+echo "Backup path found: $BackupPath"
+echo "Account name found: $AccountName"
+echo "Creating folder $DestDir"
 
-mkdir -p $UNZIP_DESTINATION
-! [[ -d $UNZIP_DESTINATION ]] && Error "Destination directory error"
+mkdir -p $DestDir
+! [[ -d $DestDir ]] && Error "Destination directory error"
 
-echo "Untaring $BACKUP_PATH into $UNZIP_DESTINATION"
-Untar $BACKUP_PATH $UNZIP_DESTINATION
+echo "Untaring $BackupPath into $DestDir"
+Untar $BackupPath $DestDir
 
-! [[ -d $UNZIP_DESTINATION/backup ]] && Error "JetBackup5 backup directory $UNZIP_DESTINATION/backup not found" 1
+! [[ -d $DestDir/backup ]] && Error "JetBackup5 backup directory $DestDir/backup not found" 1
 
-CPANEL_DIRECTORY=$UNZIP_DESTINATION/cpmove-$ACCOUNT_NAME
-JB5_BACKUP=$UNZIP_DESTINATION/backup
+CPanelDir=$DestDir/cpmove-$AccountName
+JB5Backup=$DestDir/backup
 
-echo "Converting account '$ACCOUNT_NAME'"
-echo "Working folder: $CPANEL_DIRECTORY"
+echo "Converting account '$AccountName'"
+echo "Working folder: $CPanelDir"
 
-if ! [[ -d $JB5_BACKUP/config ]]; then
+if ! [[ -d $JB5Backup/config ]]; then
 	Error "The backup not contain the config directory"
 else
-	MoveDir "$JB5_BACKUP/config" "$CPANEL_DIRECTORY/"
+	MoveDir "$JB5Backup/config" "$CPanelDir/"
 fi
 
-if [[ -d $JB5_BACKUP/homedir ]]; then
-	 if ! [[ -d $CPANEL_DIRECTORY/homedir ]]; then
-		MoveDir "$JB5_BACKUP/homedir" "$CPANEL_DIRECTORY"
+if [[ -d $JB5Backup/homedir ]]; then
+	 if ! [[ -d $CPanelDir/homedir ]]; then
+		MoveDir "$JB5Backup/homedir" "$CPanelDir"
 	 else
-		rsync -ar "$JB5_BACKUP/homedir" "$CPANEL_DIRECTORY"
+		rsync -ar "$JB5Backup/homedir" "$CPanelDir"
 	 fi
 fi
 
-if [[ -d $JB5_BACKUP/database ]] ; then
-	MoveDir "$JB5_BACKUP/database/*" "$CPANEL_DIRECTORY/mysql"
-	Extract "$CPANEL_DIRECTORY/mysql/*"
+if [[ -d $JB5Backup/database ]] ; then
+	MoveDir "$JB5Backup/database/*" "$CPanelDir/mysql"
+	Extract "$CPanelDir/mysql/*"
 fi
 
-[[ -d $JB5_BACKUP/database_user ]] && CreateMySQLfile "$JB5_BACKUP/database_user" "$CPANEL_DIRECTORY/mysql.sql"
+[[ -d $JB5Backup/database_user ]] && CreateMySQLfile "$JB5Backup/database_user" "$CPanelDir/mysql.sql"
 
-if [[ -d $JB5_BACKUP/email ]]; then
-	MoveDir "$JB5_BACKUP/email" "$CPANEL_DIRECTORY/homedir/mail"
-	[[ -d $JB5_BACKUP/jetbackup.configs/email ]] && CreateEmailAccount "$JB5_BACKUP/jetbackup.configs/email" "$CPANEL_DIRECTORY/homedir/etc" "$ACCOUNT_NAME"
+if [[ -d $JB5Backup/email ]]; then
+	MoveDir "$JB5Backup/email" "$CPanelDir/homedir/mail"
+	[[ -d $JB5Backup/jetbackup.configs/email ]] && CreateEmailAccount "$JB5Backup/jetbackup.configs/email" "$CPanelDir/homedir/etc" "$AccountName"
 fi
 
-[[ -d $JB5_BACKUP/ftp ]] && CreateFTPaccount "$JB5_BACKUP/ftp" "$CPANEL_DIRECTORY"
+[[ -d $JB5Backup/ftp ]] && CreateFTPaccount "$JB5Backup/ftp" "$CPanelDir"
 
 echo "Creating final cPanel backup archive...";
-Archive "cpmove-$ACCOUNT_NAME.tar.gz"
+Archive "cpmove-$AccountName.tar.gz"
 echo "Converting Done!"
-echo "You can safely remove working folder at: $JB5_BACKUP"
-echo "Your cPanel backup location: $UNZIP_DESTINATION/cpmove-$ACCOUNT_NAME.tar.gz"
+echo "You can safely remove working folder at: $JB5Backup"
+echo "Your cPanel backup location: $DestDir/cpmove-$AccountName.tar.gz"
 
