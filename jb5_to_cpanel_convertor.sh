@@ -94,9 +94,9 @@ function CreateFTPaccount() {
 	User="$( ls "$ConfigPath/cp/")"
 	
 	for FILE in $(ls "$DirPath" | grep -iE "\.acct$"); do
-		Username=$(cat "$DirPath/$FILE" | grep -Po '(?<=name: )(\w\D+)')
-		Password=$(cat "$DirPath/$FILE" | grep -Po '(?<=password: )([A-Za-z0-9!@#$%^&*,()\/\\.])+')
-		WebRootPath=$(cat "$DirPath/$FILE" | grep -Po '(?<=path: )([A-Za-z0-9\/_.-]+)')
+		Username="$(cat "$DirPath/$FILE" | grep -Po '(?<=name: )(\w\D+)')"
+		Password="$(cat "$DirPath/$FILE" | grep -Po '(?<=password: )([A-Za-z0-9!@#$%^&*,()\/\\.])+')"
+		WebRootPath="$(cat "$DirPath/$FILE" | grep -Po '(?<=path: )([A-Za-z0-9\/_.-]+)')"
 		echo "Creating FTP account '$Username'";
 		printf "$Username:$Password:0:0:$User:$HomeDir/$WebRootPath:/bin/ftpsh" >> $CPanelDir/proftpdpasswd
 	done
@@ -107,12 +107,12 @@ function CreateMySQLfile() {
 	SQL_FilePath="$2"
 	
 	for FILE in $(ls "$DirPath" | grep -iE "\.user$"); do
-		Username=$(cat "$DirPath/$FILE" | grep -Po '(?<=name: )([a-zA-Z0-9!@#$%^&*(\)\_\.-]+)')
-		Database=$(cat "$DirPath/$FILE" | grep -Po '(?<=database `)([_a-zA-Z0-9]+)')
-		User=$(cat "$DirPath/$FILE" | grep -Po '(?<=name: )([a-zA-Z0-9!#$%^&*(\)\_\.]+)')
-		Domain=$(echo "$Username" | grep -Po '(?<=@)(.*)$')
-		Password=$(cat "$DirPath/$FILE" | grep -Po '(?<=password: )([a-zA-Z0-9*]+)')
-		Permissions=$(cat "$DirPath/$FILE" | grep -Po '(?<=:)[A-Z ,]+$')
+		Username="$(cat "$DirPath/$FILE" | grep -Po '(?<=name: )([a-zA-Z0-9!@#$%^&*(\)\_\.-]+)')"
+		Database="$(cat "$DirPath/$FILE" | grep -Po '(?<=database `)([_a-zA-Z0-9]+)')"
+		User="$(cat "$DirPath/$FILE" | grep -Po '(?<=name: )([a-zA-Z0-9!#$%^&*(\)\_\.]+)')"
+		Domain="$(echo "$Username" | grep -Po '(?<=@)(.*)$')"
+		Password="$(cat "$DirPath/$FILE" | grep -Po '(?<=password: )([a-zA-Z0-9*]+)')"
+		Permissions="$(cat "$DirPath/$FILE" | grep -Po '(?<=:)[A-Z ,]+$')"
 		
 		echo "Creating DB '$Database'"
 		echo "Adding DB user '$User'"
@@ -125,13 +125,13 @@ function CreateMySQLfile() {
 function CreateEmailAccount() {
 	BackupEmailPath="$1"
 	DestEmailPath="$2"
-	DomainUser=$( cat "$CPanelDir/cp/$AccountName" | grep -Po '(?<=DNS=)([A-Za-z0-9-.]+)')
+	DomainUser="$( cat "$CPanelDir/cp/$AccountName" | grep -Po '(?<=DNS=)([A-Za-z0-9-.]+)')"
 	
 	echo "Creating email accounts for '$DomainUser'"
 	
 	for JSON_FILE in $(ls "$BackupEmailPath" | grep -iE "\.conf$"); do
-		Password=$(cat "$BackupEmailPath/$JSON_FILE" | grep -Po '(?<=,"password":")([a-zA-Z0-9\=,]+)')
-		DecodedPassword=$(echo "$Password" | base64 --decode )
+		Password="$(cat "$BackupEmailPath/$JSON_FILE" | grep -Po '(?<=,"password":")([a-zA-Z0-9\=,]+)')"
+		DecodedPassword="$(echo "$Password" | base64 --decode )"
 		printf "$DomainUser:$DecodedPassword" >> "$DestEmailPath/$DomainUser/shadow"
 	done
 }
