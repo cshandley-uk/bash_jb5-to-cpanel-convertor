@@ -79,9 +79,9 @@ function MoveDir() {
 
 function Archive() {
 	TarName="$1"
-	echo "Creating archive '$DestDir/$TarName'"
+	echo "Creating archive '$UnzipDest/$TarName'"
 	
-	cd "$DestDir"
+	cd "$UnzipDest"
 	tar -czf "$TarName" "cpmove-$AccountName" >/dev/null 2>&1
 	Err=$?
 	[[ $Err != 0 ]] && Error "Unable to create tar file"
@@ -139,7 +139,7 @@ function CreateEmailAccount() {
 # Parse arguments
 FilePath="$1"
 DestDir="$2"
-DestDir="$DestDir/jb5_migrate_$RANDOM"
+UnzipDest="$DestDir/jb5_migrate_$RANDOM"
 
 [[ "$DestDir" == "/" ]] && Error "Error :: Don't use root folder as destination"
 
@@ -149,18 +149,18 @@ AccountName=$(echo "$FilePath" |  grep -oP '(?<=download_)([^_]+)')
 
 echo "Backup path found: '$BackupPath'"
 echo "Account name found: '$AccountName'"
-echo "Creating folder '$DestDir'"
+echo "Creating folder '$UnzipDest'"
 
-mkdir -p "$DestDir"
-! [[ -d "$DestDir" ]] && Error "Destination directory error"
+mkdir -p "$UnzipDest"
+! [[ -d "$UnzipDest" ]] && Error "Destination directory error"
 
-echo "Untaring '$BackupPath' into '$DestDir'"
-Untar "$BackupPath" "$DestDir"
+echo "Untaring '$BackupPath' into '$UnzipDest'"
+Untar "$BackupPath" "$UnzipDest"
 
-! [[ -d "$DestDir/backup" ]] && Error "JetBackup5 backup directory '$DestDir/backup' not found"
+! [[ -d "$UnzipDest/backup" ]] && Error "JetBackup5 backup directory '$UnzipDest/backup' not found"
 
-CPanelDir="$DestDir/cpmove-$AccountName"
-JB5Backup="$DestDir/backup"
+CPanelDir="$UnzipDest/cpmove-$AccountName"
+JB5Backup="$UnzipDest/backup"
 
 echo "Converting account '$AccountName'"
 echo "Working folder: '$CPanelDir'"
@@ -197,5 +197,5 @@ echo "Creating final cPanel backup archive...";
 Archive "cpmove-$AccountName.tar.gz"
 echo "Converting Done!"
 echo "You can safely remove working folder at: '$JB5Backup'"
-echo "Your cPanel backup location: $DestDir/cpmove-$AccountName.tar.gz"
+echo "Your cPanel backup location: $UnzipDest/cpmove-$AccountName.tar.gz"
 
