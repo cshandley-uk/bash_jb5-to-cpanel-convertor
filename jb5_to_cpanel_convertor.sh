@@ -138,6 +138,83 @@ function CreateEmailAccount() {
 	done
 }
 
+function CreateDomains() {
+	DirPath="$1"
+	ConfigPath="$2"
+	
+	echo "Creating domains"
+	
+	# find primary domain
+	PrimaryDomain=""
+	for JSON_FILE in $(ls -1 "$DirPath"/*.conf); do
+		Domain="$(jq -r '.domain' "$JSON_FILE" | base64 --decode)"
+		Type="$(jq -r '.type' "$JSON_FILE" | base64 --decode)"
+		if [ "$Type" -eq 1 ]; then
+			PrimaryDomain="$Domain"
+		fi
+	done
+	if [ -z "$PrimaryDomain" ]; then Error "Failed to find the primary domain of account '$AccountName'"; fi
+	# OR COULD JUST DO: PrimaryDomain="$( cat "$CPanelDir/cp/$AccountName" | grep -Po '(?<=DNS=)([A-Za-z0-9-.]+)')"
+	
+	# write info about sub-domains of the primary domain
+	echo -n "" >$ConfigPath/sds
+	echo -n "" >$ConfigPath/sds2
+	for JSON_FILE in $(ls -1 "$DirPath"/*.conf); do
+		#WebRoot="$(jq -r '.public_dir' "$JSON_FILE" | base64 --decode)"
+		Domain="$(jq -r '.domain' "$JSON_FILE" | base64 --decode)"
+		Type="$(jq -r '.type' "$JSON_FILE" | base64 --decode)"
+		if [[ "$Type" -eq 3 && "$Domain" == *.$PrimaryDomain ]]; then
+			# (sub-domain)
+			echo "	Adding sub-domain '$Domain'"
+			echo "${Domain/./_}"         >>$ConfigPath/sds
+			echo "${Domain/./_}=$Domain" >>$ConfigPath/sds2
+		fi
+	done
+	
+	# write info about addon & parked domains
+	echo -n "" >$ConfigPath/addons
+	echo -n "" >$ConfigPath/pds
+	for JSON_FILE in $(ls -1 "$DirPath"/*.conf); do
+		#WebRoot="$(jq -r '.public_dir' "$JSON_FILE" | base64 --decode)"
+		Domain="$(jq -r '.domain' "$JSON_FILE" | base64 --decode)"
+		Type="$(jq -r '.type' "$JSON_FILE" | base64 --decode)"
+		if [ "$Type" -eq 1 ]; then
+			# (primary domain) so ignore it
+			:
+		elif [ "$Type" -eq 2 ]; then
+			# (addon domain)
+			echo "	Adding addon domain '$Domain'"
+			echo "$Domain=${Domain/./_}.$PrimaryDomain" >>$ConfigPath/addons
+			echo "${Domain/./_}.$PrimaryDomain"         >>$ConfigPath/sds
+			echo "${Domain/./_}.$PrimaryDomain=$Domain" >>$ConfigPath/sds2
+		
+		elif [ "$Type" -eq 3 ]; then
+			# (sub-domain) so ignore for the moment
+			:
+		
+		elif [ "$Type" -eq 4 ]; then
+			# (parked/alias domain)
+			echo "$Domain" >>$ConfigPath/pds
+		else
+			# (unknown domain type)
+			Error "Domain '$Domain' has unknown type '$Type'"
+		fi
+	done
+	
+	# write info about sub-domains that are NOT of the primary domain
+	for JSON_FILE in $(ls -1 "$DirPath"/*.conf); do
+		#WebRoot="$(jq -r '.public_dir' "$JSON_FILE" | base64 --decode)"
+		Domain="$(jq -r '.domain' "$JSON_FILE" | base64 --decode)"
+		Type="$(jq -r '.type' "$JSON_FILE" | base64 --decode)"
+		if [[ "$Type" -eq 3 && ! "$Domain" == *.$PrimaryDomain ]]; then
+			# (sub-domain)
+			echo "	Adding sub-domain '$Domain'"
+			echo "${Domain/./_}"         >>$ConfigPath/sds
+			echo "${Domain/./_}=$Domain" >>$ConfigPath/sds2
+		fi
+	done
+}
+
 # Parse arguments
 FilePath="$1"
 DestDir="$2"
@@ -206,6 +283,10 @@ if [[ -d "$JB5Backup/email" ]]; then
 fi
 
 [[ -d "$JB5Backup/ftp" ]] && CreateFTPaccount "$JB5Backup/ftp" "$CPanelDir"
+
+if [[ -d "$JB5Backup/jetbackup.configs/domain" ]]; then
+	CreateDomains "$JB5Backup/jetbackup.configs/domain" "$CPanelDir"
+fi
 
 echo "Creating final cPanel backup archive...";
 Archive "cpmove-$AccountName.tar.gz"
