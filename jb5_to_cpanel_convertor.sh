@@ -355,6 +355,7 @@ fi
 if [[ -d "$JB5Backup/domain" ]]; then
 	CreateDNSZones "$JB5Backup/domain" "$CPanelDir"
 fi
+
 echo "Creating final cPanel backup archive...";
 Archive "cpmove-$AccountName.tar.gz"
 echo "Converting Done!"
