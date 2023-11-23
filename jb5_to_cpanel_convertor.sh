@@ -261,6 +261,23 @@ function CreateSSLcerts() {
 	done
 }
 
+function CreateDNSZones() {
+	DirPath="$1"
+	ConfigPath="$2"
+	
+	echo "Creating DNS zones"
+	
+	for FILE in $(ls -1 "$DirPath"/*.zone); do
+		FileName="${FILE##*/}"
+		DstFile="$ConfigPath/dnszones/${FileName%.*}.db"
+		
+		echo "	Creating '$DstFile'"
+		mv "$FILE" "$DstFile"
+		Err=$?
+		[[ $Err -gt 0 ]] && Error "An error occurred"
+	done
+}
+
 # Parse arguments
 FilePath="$1"
 DestDir="$2"
@@ -335,6 +352,9 @@ if [[ -d "$JB5Backup/jetbackup.configs/domain" ]]; then
 	CreateSSLcerts "$JB5Backup/jetbackup.configs/domain" "$CPanelDir"
 fi
 
+if [[ -d "$JB5Backup/domain" ]]; then
+	CreateDNSZones "$JB5Backup/domain" "$CPanelDir"
+fi
 echo "Creating final cPanel backup archive...";
 Archive "cpmove-$AccountName.tar.gz"
 echo "Converting Done!"
