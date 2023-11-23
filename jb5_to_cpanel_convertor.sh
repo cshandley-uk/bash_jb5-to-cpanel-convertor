@@ -360,5 +360,5 @@ echo "Creating final cPanel backup archive...";
 Archive "cpmove-$AccountName.tar.gz"
 echo "Converting Done!"
 #echo "You can safely remove working folder at: '$JB5Backup'"
-echo -e "Your cPanel backup:\n$UnzipDest/cpmove-$AccountName.tar.gz"
+echo -e "Your cPanel backup:\n$DestDir/cpmove-$AccountName.tar.gz"
 
