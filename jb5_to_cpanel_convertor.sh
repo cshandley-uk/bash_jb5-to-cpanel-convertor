@@ -149,7 +149,8 @@ DestDir="$2"
 if [ -z "$DestDir" ]; then DestDir=/home; fi
 
 # Extract username
-AccountName=$(echo "$FilePath" |  grep -oP '(?<=download_)([^_]+)')
+#AccountName=$(echo "$FilePath" |  grep -oP '(?<=download_)([^_]+)')
+AccountName="$(echo "${FilePath##*/}" | cut -d_ -f2)"
 
 UnzipDest="$(mktemp --directory --tmpdir=/tmp "tmp_jb5_$AccountName.XXXXXXXX")"
 BackupPath="$FilePath"
