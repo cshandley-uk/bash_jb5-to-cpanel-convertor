@@ -58,14 +58,14 @@ function Untar() {
 	DestPath=$2
 	tar -xf $BackupPath -C $DestPath
 	Err=$?
-	[[ $Err -gt 0  ]] && Error "Unable to untar the file $BackupPath" 1
+	[[ $Err -gt 0  ]] && Error "Unable to untar the file '$BackupPath'"
 }
 
 function Extract() {
 	FilePath=$1
 	gunzip $FilePath
 	Err=$?
-	[[ $Err -gt 0 ]] && Error "Unable to extract files" 1
+	[[ $Err -gt 0 ]] && Error "Unable to extract files"
 }
 
 function MoveDir() {
@@ -74,7 +74,7 @@ function MoveDir() {
 	Dst=$2
 	mv $Src $Dst
 	Err=$?
-	[[ $Err -gt 0 ]] && Error "error occurred" 1
+	[[ $Err -gt 0 ]] && Error "error occurred"
 }
 
 function Archive() {
@@ -85,7 +85,7 @@ function Archive() {
 	cd $DestDir
 	tar -czf "$TarName" cpmove-"$AccountName" >/dev/null 2>&1
 	Err=$?
-	[[ $Err != 0 ]] && Error "Unable to create tar file" 1
+	[[ $Err != 0 ]] && Error "Unable to create tar file"
 }
 
 function CreateFTPaccount() {
@@ -157,7 +157,7 @@ mkdir -p $DestDir
 echo "Untaring $BackupPath into $DestDir"
 Untar $BackupPath $DestDir
 
-! [[ -d $DestDir/backup ]] && Error "JetBackup5 backup directory $DestDir/backup not found" 1
+! [[ -d $DestDir/backup ]] && Error "JetBackup5 backup directory $DestDir/backup not found"
 
 CPanelDir=$DestDir/cpmove-$AccountName
 JB5Backup=$DestDir/backup
