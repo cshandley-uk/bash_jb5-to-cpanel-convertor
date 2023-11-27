@@ -1,14 +1,10 @@
 #!/bin/bash
 # Convert the supplied JetBackup 5 backup file to a cPanel-compatible backup.
 # 
-# Created by TheLazyAdmin, https://thelazyadmin.blog
+# Originally created by TheLazyAdmin, https://thelazyadmin.blog
 #
 # ** USE AT YOUR OWN RISK ** 
-# Downloaded from: https://thelazyadmin.blog/convert-jetbackup-to-cpanel
 
-# TheLazyAdmin indicated to use this license:
-# https://thelazyadmin.blog/convert-jetbackup-to-cpanel#comment-3240
-# 
 # MIT License
 # 
 # Copyright (c) 2022 TheLazyAdmin
