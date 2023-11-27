@@ -52,7 +52,7 @@ I ran into several issues with the created cPanel backups, which I have since fi
 * It didn’t restore DNS zones.
 
 In addition to that I made a number of other changes to the code, including:
-* I removed the `--fetch` option which caused the local server to generate a new JetBackup 5 backup, as this is only useful if you have root access to the source server - in which case you could just re-enable cPanel’s built-in backup functionality anyway.  The --fetch code was just extra complexity that I didn’t need when trying to understand & improve the script, and I wouldn't have been unable to test it anyway.
+* I removed the `--fetch` option which caused the local server to generate a new JetBackup 5 backup, as this is only useful if you have root access to the source server - in which case you could just re-enable cPanel’s built-in backup functionality anyway.  The --fetch code was just extra complexity that I didn’t need when trying to understand & improve the script, and I would have been unable to test it anyway.
 * I made it allocate a proper /tmp folder for storing temporary files (e.g. unpacked archive), which is always deleted - rather than leaving a randomly named folder in the destination that the user must manually delete.
 * Quoted almost all variables, so spaces in filenames won’t break the script or cause incorrect behaviour.
 * Quoted all $(…) embedded code, so that unexpected spaces in the output won’t break the script or cause incorrect behaviour.
