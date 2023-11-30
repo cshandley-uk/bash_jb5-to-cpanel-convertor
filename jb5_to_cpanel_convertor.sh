@@ -38,11 +38,11 @@ function ErrorHelp {
 	echo ""
 	echo "$1"
 	echo "
-Example for manual usage:
-jb5_to_cpanel_convertor.sh {JETBACKUP5_BACKUP} {DESTINATION_FOLDER}
+How to use:
+jb5_to_cpanel_convertor.sh JETBACKUP5_BACKUP [DESTINATION_FOLDER]
 
-{JETBACKUP5_BACKUP}  = Source JetBackup file
-{DESTINATION_FOLDER} = Destination folder for cPanel backup, defaults to /home/
+JETBACKUP5_BACKUP  = Source JetBackup file
+DESTINATION_FOLDER = Optional destination folder for cPanel backup, defaults to /home/
 
 e.g. 
 jb5_to_cpanel_convertor.sh /home/download_jb5user_1663238955_28117.tar.gz
