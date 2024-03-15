@@ -80,7 +80,7 @@ function Archive() {
 	echo "Creating archive '$DestDir/$TarName'"
 	
 	if [ -f "$DestDir/$TarName" ]; then rm "$DestDir/$TarName"; fi	# Ensure create a new archive from scratch
-	cd "$UnzipDest"
+	cd "$UnzipDest" || Error "Failed to CD to '$UnzipDest'"
 	tar -czf "$DestDir/$TarName" "cpmove-$AccountName" >/dev/null 2>&1
 	Err=$?
 	[[ $Err != 0 ]] && Error "Unable to create tar file"
