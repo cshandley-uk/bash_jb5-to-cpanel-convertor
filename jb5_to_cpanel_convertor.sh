@@ -297,7 +297,7 @@ echo "Found backup path '$BackupPath'"
 echo "Found account '$AccountName'"
 
 echo "Creating temporary folder '$UnzipDest'"
-mkdir -p "$UnzipDest"
+mkdir -p "$UnzipDest"   || ErrorHelp "Destination directory error"
 ! [[ -d "$UnzipDest" ]] && ErrorHelp "Destination directory error"
 # Ensure we always clean-up the temporary dir
 Trap=":"
