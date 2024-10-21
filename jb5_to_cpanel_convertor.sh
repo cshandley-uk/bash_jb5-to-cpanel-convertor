@@ -94,11 +94,11 @@ function CreateFTPaccount() {
 	User="$( ls "$ConfigPath/cp/")"
 	
 	for FILE in $(ls -1 "$DirPath" | grep -iE "\.acct$"); do
-		Username="$(cat "$DirPath/$FILE" | grep -Po '(?<=name: )(\w\D+)')"
-		Password="$(cat "$DirPath/$FILE" | grep -Po '(?<=password: )([A-Za-z0-9!@#$%^&*,()\/\\.])+')"
-		WebRootPath="$(cat "$DirPath/$FILE" | grep -Po '(?<=path: )([A-Za-z0-9\/_.-]+)')"
+		Username="$(grep -Po '(?<=name: )(\w\D+)' "$DirPath/$FILE")"
+		Password="$(grep -Po '(?<=password: )([A-Za-z0-9!@#$%^&*,()\/\\.])+' "$DirPath/$FILE")"
+		WebRootPath="$(grep -Po '(?<=path: )([A-Za-z0-9\/_.-]+)' "$DirPath/$FILE")"
 		echo "Creating FTP account '$Username'";
-		printf "$Username:$Password:0:0:$User:$HomeDir/$WebRootPath:/bin/ftpsh" >> "$CPanelDir/proftpdpasswd"
+		printf "%s:%s:0:0:%s:%s/%s:/bin/ftpsh" "$Username" "$Password" "$User" "$HomeDir" "$WebRootPath" >> "$CPanelDir/proftpdpasswd"
 	done
 }
 
@@ -107,12 +107,12 @@ function CreateMySQLfile() {
 	SQL_FilePath="$2"
 	
 	for FILE in $(ls -1 "$DirPath" | grep -iE "\.user$"); do
-		Username="$(cat "$DirPath/$FILE" | grep -Po '(?<=name: )([a-zA-Z0-9!@#$%^&*(\)\_\.-]+)')"
-		Database="$(cat "$DirPath/$FILE" | grep -Po '(?<=database `)([_a-zA-Z0-9]+)')"
-		User="$(cat "$DirPath/$FILE" | grep -Po '(?<=name: )([a-zA-Z0-9!#$%^&*(\)\_\.]+)')"
+		Username="$(grep -Po '(?<=name: )([a-zA-Z0-9!@#$%^&*(\)\_\.-]+)' "$DirPath/$FILE")"
+		Database="$(grep -Po '(?<=database `)([_a-zA-Z0-9]+)' "$DirPath/$FILE")"
+		User="$(grep -Po '(?<=name: )([a-zA-Z0-9!#$%^&*(\)\_\.]+)' "$DirPath/$FILE")"
 		Domain="$(echo "$Username" | grep -Po '(?<=@)(.*)$')"
-		Password="$(cat "$DirPath/$FILE" | grep -Po '(?<=password: )([a-zA-Z0-9*]+)')"
-		Permissions="$(cat "$DirPath/$FILE" | grep -Po '(?<=:)[A-Z ,]+$')"
+		Password="$(grep -Po '(?<=password: )([a-zA-Z0-9*]+)' "$DirPath/$FILE")"
+		Permissions="$(grep -Po '(?<=:)[A-Z ,]+$' "$DirPath/$FILE")"
 		
 		echo "Creating DB '$Database' & adding DB user '$User'"
 		
@@ -144,7 +144,7 @@ function CreateDomains() {
 	
 	# find primary domain
 	PrimaryDomain=""
-	for JSON_FILE in $(ls -1 "$DirPath"/*.conf); do
+	for JSON_FILE in "$DirPath"/*.conf; do
 		Domain="$(jq -r '.domain' "$JSON_FILE" | base64 --decode)"
 		Type="$(jq -r '.type' "$JSON_FILE" | base64 --decode)"
 		if [ "$Type" -eq 1 ]; then
@@ -155,24 +155,24 @@ function CreateDomains() {
 	# OR COULD JUST DO: PrimaryDomain="$( cat "$CPanelDir/cp/$AccountName" | grep -Po '(?<=DNS=)([A-Za-z0-9-.]+)')"
 	
 	# write info about sub-domains of the primary domain
-	echo -n "" >$ConfigPath/sds
-	echo -n "" >$ConfigPath/sds2
-	for JSON_FILE in $(ls -1 "$DirPath"/*.conf); do
+	echo -n "" >"$ConfigPath"/sds
+	echo -n "" >"$ConfigPath"/sds2
+	for JSON_FILE in "$DirPath"/*.conf; do
 		#WebRoot="$(jq -r '.public_dir' "$JSON_FILE" | base64 --decode)"
 		Domain="$(jq -r '.domain' "$JSON_FILE" | base64 --decode)"
 		Type="$(jq -r '.type' "$JSON_FILE" | base64 --decode)"
 		if [[ "$Type" -eq 3 && "$Domain" == *.$PrimaryDomain ]]; then
 			# (sub-domain)
 			echo "	Adding sub-domain '$Domain'"
-			echo "${Domain/./_}"         >>$ConfigPath/sds
-			echo "${Domain/./_}=$Domain" >>$ConfigPath/sds2
+			echo "${Domain/./_}"         >>"$ConfigPath"/sds
+			echo "${Domain/./_}=$Domain" >>"$ConfigPath"/sds2
 		fi
 	done
 	
 	# write info about addon & parked domains
-	echo -n "" >$ConfigPath/addons
-	echo -n "" >$ConfigPath/pds
-	for JSON_FILE in $(ls -1 "$DirPath"/*.conf); do
+	echo -n "" >"$ConfigPath"/addons
+	echo -n "" >"$ConfigPath"/pds
+	for JSON_FILE in "$DirPath"/*.conf; do
 		#WebRoot="$(jq -r '.public_dir' "$JSON_FILE" | base64 --decode)"
 		Domain="$(jq -r '.domain' "$JSON_FILE" | base64 --decode)"
 		Type="$(jq -r '.type' "$JSON_FILE" | base64 --decode)"
@@ -182,9 +182,9 @@ function CreateDomains() {
 		elif [ "$Type" -eq 2 ]; then
 			# (addon domain)
 			echo "	Adding addon domain '$Domain'"
-			echo "$Domain=${Domain/./_}.$PrimaryDomain" >>$ConfigPath/addons
-			echo "${Domain/./_}.$PrimaryDomain"         >>$ConfigPath/sds
-			echo "${Domain/./_}.$PrimaryDomain=$Domain" >>$ConfigPath/sds2
+			echo "$Domain=${Domain/./_}.$PrimaryDomain" >>"$ConfigPath"/addons
+			echo "${Domain/./_}.$PrimaryDomain"         >>"$ConfigPath"/sds
+			echo "${Domain/./_}.$PrimaryDomain=$Domain" >>"$ConfigPath"/sds2
 		
 		elif [ "$Type" -eq 3 ]; then
 			# (sub-domain) so ignore for the moment
@@ -192,7 +192,7 @@ function CreateDomains() {
 		
 		elif [ "$Type" -eq 4 ]; then
 			# (parked/alias domain)
-			echo "$Domain" >>$ConfigPath/pds
+			echo "$Domain" >>"$ConfigPath"/pds
 		else
 			# (unknown domain type)
 			Error "Domain '$Domain' has unknown type '$Type'"
@@ -200,15 +200,15 @@ function CreateDomains() {
 	done
 	
 	# write info about sub-domains that are NOT of the primary domain
-	for JSON_FILE in $(ls -1 "$DirPath"/*.conf); do
+	for JSON_FILE in "$DirPath"/*.conf; do
 		#WebRoot="$(jq -r '.public_dir' "$JSON_FILE" | base64 --decode)"
 		Domain="$(jq -r '.domain' "$JSON_FILE" | base64 --decode)"
 		Type="$(jq -r '.type' "$JSON_FILE" | base64 --decode)"
 		if [[ "$Type" -eq 3 && ! "$Domain" == *.$PrimaryDomain ]]; then
 			# (sub-domain)
 			echo "	Adding sub-domain '$Domain'"
-			echo "${Domain/./_}"         >>$ConfigPath/sds
-			echo "${Domain/./_}=$Domain" >>$ConfigPath/sds2
+			echo "${Domain/./_}"         >>"$ConfigPath"/sds
+			echo "${Domain/./_}=$Domain" >>"$ConfigPath"/sds2
 		fi
 	done
 }
@@ -227,14 +227,14 @@ function CreateSSLcerts() {
 	return
 	
 	# loop through primary, addon & parked Domains
-	for JSON_FILE in $(ls -1 "$DirPath"/*.conf); do
+	for JSON_FILE in "$DirPath"/*.conf; do
 		#WebRoot="$(jq -r '.public_dir' "$JSON_FILE" | base64 --decode)"
 		Domain="$(jq -r '.domain' "$JSON_FILE" | base64 --decode)"
 		Type="$(jq -r '.type' "$JSON_FILE" | base64 --decode)"
 		if [[ "$Type" -eq 1 || "$Type" -eq 2 || "$Type" -eq 4 ]]; then
 			echo "	Creating SSL cert for '$Domain'"
 			#echo "# Domain='$Domain', Type=$Type (1/2/3/4=Primary/Addon/Sub/Parked)" >/dev/stderr
-			echo -n "" >$ConfigPath/apache_tls/$Domain
+			echo -n "" >"$ConfigPath"/apache_tls/"$Domain"
 
 			# for the Domain, get the Modulus of it's most recent certificate
 			Modulus="$(yq -r ".files.certificate | to_entries | map(select(.value.\"subject.commonName\" == \"$Domain\")) | sort_by(.value.created) | reverse[0].value.modulus" "$ConfigPath"/homedir/ssl/ssl.db)"
@@ -243,15 +243,15 @@ function CreateSSLcerts() {
 			Key="$(yq -r ".files.key | to_entries | map(select(.value.modulus == \"$Modulus\"))[] | .key" "$ConfigPath"/homedir/ssl/ssl.db)"
 			#echo "# modulus has Key='$Key'" >/dev/stderr
 			# read the corresponding Key & append it to apache_tls/Domain
-			cat "$ConfigPath"/homedir/ssl/keys/"$Key".key >>$ConfigPath/apache_tls/$Domain
-			echo ""                                       >>$ConfigPath/apache_tls/$Domain
+			cat "$ConfigPath"/homedir/ssl/keys/"$Key".key >>"$ConfigPath"/apache_tls/"$Domain"
+			echo ""                                       >>"$ConfigPath"/apache_tls/"$Domain"
 			
 			# for the Domain, get the name of it's most recent Cert(ificate)
 			Cert="$(yq -r ".files.certificate | to_entries | map(select(.value.\"subject.commonName\" == \"$Domain\")) | sort_by(.value.created) | reverse[0].key" "$ConfigPath"/homedir/ssl/ssl.db)"
 			#echo "# domain has Cert='$Cert'" >/dev/stderr
 			# read the Cert(ificate) & append it to apache_tls/Domain
-			cat "$ConfigPath"/homedir/ssl/certs/"$Cert".crt >>$ConfigPath/apache_tls/$Domain
-			echo ""                                         >>$ConfigPath/apache_tls/$Domain
+			cat "$ConfigPath"/homedir/ssl/certs/"$Cert".crt >>"$ConfigPath"/apache_tls/"$Domain"
+			echo ""                                         >>"$ConfigPath"/apache_tls/"$Domain"
 			
 			# I don't append the CA (Certificate Authority) bundle’s root node, as I can't find it in the JB5 backup.
 			# BUT it might be unnecessary as "In most cases, you do not need to supply the CA bundle because the server will fetch it from a public repository"
@@ -265,7 +265,7 @@ function CreateDNSZones() {
 	
 	echo "Creating DNS zones"
 	
-	for FILE in $(ls -1 "$DirPath"/*.zone); do
+	for FILE in "$DirPath"/*.zone; do
 		FileName="${FILE##*/}"
 		DstFile="$ConfigPath/dnszones/${FileName%.*}.db"
 		
