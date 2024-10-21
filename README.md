@@ -1,7 +1,7 @@
 # bash_jb5-to-cpanel-convertor
 This Bash script converts a supplied JetBackup 5 backup file to a cPanel-compatible backup (which can then be restored by WHM, etc).
 
-I expect the script to be used when you want to migrate to another cPanel host, but the old host only provides JetBackup 5 backups, and the new host doesn't use JetBackup 5.  The script currently assumes root access to the new hosting (particularly for the temporary folder), although that could easily be fixed.
+I expect the script to be used when you want to migrate to another cPanel host, but the old host only provides JetBackup 5 backups, and the new host doesn't use JetBackup 5.  The script can now be called by both root & non-root users.
 
 I hope that other people will improve the script.  I would be happy to receive pull requests.
 

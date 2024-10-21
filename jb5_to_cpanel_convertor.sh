@@ -8,7 +8,7 @@
 # MIT License
 # 
 # Copyright (c) 2022 TheLazyAdmin
-# Copyright (c) 2023 Christopher Handley
+# Copyright (c) 2023,2024 Christopher Handley
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -42,7 +42,8 @@ How to use:
 jb5_to_cpanel_convertor.sh JETBACKUP5_BACKUP [DESTINATION_FOLDER]
 
 JETBACKUP5_BACKUP  = Source JetBackup file
-DESTINATION_FOLDER = Optional destination folder for cPanel backup, defaults to /home/
+DESTINATION_FOLDER = Optional destination folder for cPanel backup, 
+                     defaults to /home/, if you are root, otherwise to ~/
 
 e.g. 
 jb5_to_cpanel_convertor.sh /home/download_jb5user_1663238955_28117.tar.gz
@@ -92,7 +93,7 @@ function CreateFTPaccount() {
 	HomeDir="$( cat "$ConfigPath/meta/homedir_paths" )"
 	User="$( ls "$ConfigPath/cp/")"
 	
-	for FILE in $(ls "$DirPath" | grep -iE "\.acct$"); do
+	for FILE in $(ls -1 "$DirPath" | grep -iE "\.acct$"); do
 		Username="$(cat "$DirPath/$FILE" | grep -Po '(?<=name: )(\w\D+)')"
 		Password="$(cat "$DirPath/$FILE" | grep -Po '(?<=password: )([A-Za-z0-9!@#$%^&*,()\/\\.])+')"
 		WebRootPath="$(cat "$DirPath/$FILE" | grep -Po '(?<=path: )([A-Za-z0-9\/_.-]+)')"
@@ -105,7 +106,7 @@ function CreateMySQLfile() {
 	DirPath="$1"
 	SQL_FilePath="$2"
 	
-	for FILE in $(ls "$DirPath" | grep -iE "\.user$"); do
+	for FILE in $(ls -1 "$DirPath" | grep -iE "\.user$"); do
 		Username="$(cat "$DirPath/$FILE" | grep -Po '(?<=name: )([a-zA-Z0-9!@#$%^&*(\)\_\.-]+)')"
 		Database="$(cat "$DirPath/$FILE" | grep -Po '(?<=database `)([_a-zA-Z0-9]+)')"
 		User="$(cat "$DirPath/$FILE" | grep -Po '(?<=name: )([a-zA-Z0-9!#$%^&*(\)\_\.]+)')"
@@ -126,7 +127,7 @@ function CreateEmailAccount() {
 	
 	echo "Creating email accounts"
 	
-	for JSON_FILE in $(ls "$BackupEmailPath" | grep -iE "\.conf$"); do
+	for JSON_FILE in $(ls -1 "$BackupEmailPath" | grep -iE "\.conf$"); do
 		JsonFile="$BackupEmailPath/$JSON_FILE"
 		MailUser="$(jq -r '.account' "$JsonFile" | base64 --decode)"
 		MailDomain="$(jq -r '.domain' "$JsonFile" | base64 --decode)"
@@ -220,7 +221,7 @@ function CreateSSLcerts() {
 	
 	# indicates the account will use WHM’s SSL Storage Manager feature (WHM » Home » SSL/TLS » SSL Storage Manager)
 	# And without this, restoring the account will fail to install the SSL certificate, reporting "An error prevented adding a record of type “crt” ... That certificate is already installed as ..."
-	touch $ConfigPath/has_sslstorage
+	touch "$ConfigPath"/has_sslstorage
 	
 	# with the above, the code below seems unnecessary, so I have disabled it
 	return
@@ -284,7 +285,13 @@ DestDir="$2"
 [[ "$DestDir" == "/" ]] && ErrorHelp "Error :: Don't use root folder as destination"
 
 # Default arguments
-if [ -z "$DestDir" ]; then DestDir=/home; fi
+if [ -z "$DestDir" ]; then
+	if [ "$(whoami)" == "root" ]; then
+		DestDir=/home
+	else
+		DestDir=~
+	fi
+fi
 
 # Extract username
 #AccountName=$(echo "$FilePath" |  grep -oP '(?<=download_)([^_]+)')
