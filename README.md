@@ -33,7 +33,8 @@ The script also uses the "gunzip" & "tar" commands, but these are typically alre
 
 JETBACKUP5_BACKUP  = Source JetBackup file
 
-DESTINATION_FOLDER = Optional destination folder for cPanel backup, defaults to /home/
+DESTINATION_FOLDER = Optional destination folder for cPanel backup,
+                     defaults to /home/, if you are root, otherwise to ~/
 
 e.g. 
 `jb5_to_cpanel_convertor.sh /home/download_jb5user_1663238955_28117.tar.gz`
