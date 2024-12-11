@@ -297,7 +297,23 @@ fi
 #AccountName=$(echo "$FilePath" |  grep -oP '(?<=download_)([^_]+)')
 AccountName="$(echo "${FilePath##*/}" | cut -d_ -f2)"
 
-UnzipDest="$(mktemp --directory --tmpdir=/tmp "tmp_jb5_$AccountName.XXXXXXXX")"
+if [ $(( $(du --block-size=1 "$FilePath" | cut -f1)*10 )) -lt $(df --block-size=1 --output=avail /tmp | tail -n1) ]; then
+    # (Free space of /tmp is more than 10 times the compressed archive size) so should be safe to decompress there
+    TmpDir=/tmp
+    
+elif [ $(( $(du --block-size=1 "$FilePath" | cut -f1)*2 )) -gt $(df --block-size=1 --output=avail /tmp | tail -n1) ]; then
+    # (Free space of /tmp is less than 2 times the compressed archive size) so definitely NOT enough space
+    TmpDir=~
+else
+    echo "/tmp may not be big enough so checking the decompressed size of the archive..."
+    if [ $(( $(time zcat "$FilePath" | wc -c)*2 )) -lt $(df --block-size=1 --output=avail /tmp | tail -n1) ]; then
+        # (Free space of /tmp is more than 2 times the UNcompressed archive size) so definitely safe to decompress there
+        TmpDir=/tmp
+    else
+        TmpDir=~
+    fi
+fi
+UnzipDest="$(mktemp --directory --tmpdir=$TmpDir "tmp_jb5_$AccountName.XXXXXXXX")"
 BackupPath="$FilePath"
 
 echo "Found backup path '$BackupPath'"
